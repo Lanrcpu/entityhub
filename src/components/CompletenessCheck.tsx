@@ -70,6 +70,14 @@ export default function CompletenessCheck({ info }: CompletenessCheckProps) {
         : 'Service Area is missing. This helps customers and AI systems understand where your business operates.'
     },
     {
+      id: 'googleReviews',
+      label: 'Google Reviews',
+      status: (info.reviews || []).filter(r => r.source === 'Google').length > 0 ? 'complete' : 'critical',
+      desc: (info.reviews || []).filter(r => r.source === 'Google').length > 0
+        ? 'Includes recent Google Business Profile reviews.'
+        : 'No Google reviews provided. Please enter the last 5 Google reviews (critical for trust signals).'
+    },
+    {
       id: 'phone',
       label: 'Phone Contact',
       status: info.phone ? 'complete' : 'critical',

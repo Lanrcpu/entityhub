@@ -59,7 +59,7 @@ interface FormCollectorProps {
   onChange: (updated: BusinessInfo) => void;
 }
 
-type TabType = 'identity' | 'contact' | 'address' | 'services' | 'trust' | 'products' | 'faq' | 'branding' | 'images' | 'review';
+type TabType = 'identity' | 'contact' | 'address' | 'services' | 'trust' | 'products' | 'faq' | 'branding' | 'images' | 'googleReviews' | 'review';
 
 const themePresets: Record<ThemePresetName, {
   style: ThemeStyle;
@@ -139,12 +139,13 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
     { id: 'identity', label: 'Identity' },
     { id: 'contact', label: 'Contact' },
     { id: 'address', label: 'Location' },
-    { id: 'review', label: 'Review & Export' },
     { id: 'services', label: 'Services' },
     { id: 'products', label: 'Products' },
     { id: 'faq', label: 'FAQ' },
     { id: 'branding', label: 'Branding' },
-    { id: 'images', label: 'Images' }
+    { id: 'images', label: 'Images' },
+    { id: 'googleReviews', label: 'Google Reviews' },
+    { id: 'review', label: 'Review & Export' }
   ];
 
   // Helper to load templates
@@ -271,6 +272,20 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
       review: 'Excellent service.',
       date: new Date().toISOString().slice(0, 10),
       source: 'Manual Customer Review' as any
+    };
+    onChange({ ...info, reviews: [...(info.reviews || []), newReview] });
+  };
+
+  const addGoogleReview = () => {
+    const googleReviews = (info.reviews || []).filter(r => r.source === 'Google');
+    if (googleReviews.length >= 5) return;
+    const newReview = {
+      id: 'grev_' + Date.now(),
+      reviewer: 'Google Reviewer',
+      rating: 5,
+      review: 'Great experience.',
+      date: new Date().toISOString().slice(0, 10),
+      source: 'Google' as any
     };
     onChange({ ...info, reviews: [...(info.reviews || []), newReview] });
   };
@@ -674,6 +689,78 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
                 required
               />
             </div>
+          </div>
+        )}
+
+        {/* GOOGLE REVIEWS TAB */}
+        {activeTab === 'googleReviews' && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex justify-between items-center border-b border-zinc-100 pb-2">
+              <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Google Reviews (Last 5)</h3>
+              <button
+                onClick={addGoogleReview}
+                disabled={((info.reviews || []).filter(r => r.source === 'Google').length) >= 5}
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-md text-xs font-bold transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Google Review
+              </button>
+            </div>
+
+            {((info.reviews || []).filter(r => r.source === 'Google').length) === 0 ? (
+              <div className="text-center p-6 border border-dashed border-red-200 rounded-xl bg-red-50">
+                <p className="text-xs text-red-700 italic">No Google reviews provided. This is critical information and should include the last 5 Google reviews from your Google Business profile.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {(info.reviews || []).filter(r => r.source === 'Google').map(r => (
+                  <div key={r.id} className="p-3 border border-zinc-200 rounded-xl bg-zinc-50/50">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={r.reviewer}
+                          onChange={e => updateReview(r.id, 'reviewer', e.target.value)}
+                          placeholder="Reviewer name"
+                          className="w-full px-2 py-1 text-xs border border-zinc-200 rounded bg-white"
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <input
+                            type="number"
+                            min={1}
+                            max={5}
+                            value={r.rating}
+                            onChange={e => updateReview(r.id, 'rating', Number(e.target.value))}
+                            className="w-20 px-2 py-1 text-xs border border-zinc-200 rounded bg-white"
+                          />
+                          <input
+                            type="date"
+                            value={r.date}
+                            onChange={e => updateReview(r.id, 'date', e.target.value)}
+                            className="px-2 py-1 text-xs border border-zinc-200 rounded bg-white"
+                          />
+                        </div>
+                        <textarea
+                          value={r.review}
+                          onChange={e => updateReview(r.id, 'review', e.target.value)}
+                          rows={3}
+                          className="w-full mt-2 p-2 text-xs border border-zinc-200 rounded bg-white"
+                        />
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => removeReview(r.id)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          title="Delete Review"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[10px] text-zinc-500">Enter up to 5 Google reviews exactly as they appear on your public Google Business profile.</p>
           </div>
         )}
 
