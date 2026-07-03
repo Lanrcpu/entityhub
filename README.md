@@ -181,3 +181,7 @@ This project is licensed under the Apache License 2.0. See the `LICENSE` file fo
 
 ---
 *Crafted with precision by the BACS Release Engineering Team.*
+
+---
+<!-- Deployment ping: auto-appended to trigger Pages rebuild -->
+Last redeploy: 2026-07-03T00:00:00Z
