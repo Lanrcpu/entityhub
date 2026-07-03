@@ -169,8 +169,21 @@ export default function App() {
             <Globe className="w-4 h-4 text-zinc-400" />
             <span>Empowering small businesses to control their digital identities under strict machine standards.</span>
           </div>
-          <div className="text-right">
+          <div className="text-right flex flex-col items-end gap-1">
             <p className="font-medium text-zinc-600">Generated with BACS Entity Hub v1.0</p>
+            <div>
+              <a
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-md text-xs font-bold hover:bg-green-700"
+                href={`https://wa.me/${(businessInfo.whatsapp || '+15035550143').replace(/[^0-9]/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                  <path d="M20.52 3.48A11.91 11.91 0 0012 0C5.372 0 .04 5.33.04 11.967c0 2.11.55 4.158 1.6 5.98L0 24l6.32-1.66A11.9 11.9 0 0012 24c6.63 0 11.96-5.33 11.96-12 0-3.2-1.25-6.2-3.44-8.52z" fill="white"/>
+                </svg>
+                <span>Chat on WhatsApp</span>
+              </a>
+            </div>
             <p className="text-[10px] text-zinc-400 mt-0.5">&copy; {new Date().getFullYear()} • Standards Compliant WCAG AA</p>
           </div>
         </div>

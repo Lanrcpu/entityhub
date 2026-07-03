@@ -20,9 +20,8 @@ import {
   generateReadme,
   generate404Html
 } from '../utils/generator';
-import { exportDraftFile } from '../utils/saveDraft';
 import { getMissingCriticalFields } from './BacsAssist';
-import { FolderArchive, FileCode, CheckCircle, Download, UploadCloud, FileText, Code2, Globe } from 'lucide-react';
+import { FolderArchive, FileCode, CheckCircle, Download, FileText, Code2, Globe } from 'lucide-react';
 import BacsAssist from './BacsAssist';
 
 interface ExporterProps {
@@ -39,7 +38,6 @@ export default function Exporter({ info }: ExporterProps) {
   const [selectedFileIndex, setSelectedFileIndex] = useState<number>(0);
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportSuccess, setExportSuccess] = useState<boolean>(false);
-  const [draftSaved, setDraftSaved] = useState<boolean>(false);
 
   const missingFields = getMissingCriticalFields(info);
   const isIncompletePackage = missingFields.length > 0;
@@ -136,27 +134,10 @@ export default function Exporter({ info }: ExporterProps) {
             )}
           </button>
 
-          <button
-            onClick={() => {
-              exportDraftFile(info);
-              setDraftSaved(true);
-              setTimeout(() => setDraftSaved(false), 4000);
-            }}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2.5 transition-all border border-white/20 bg-white/10 hover:bg-white/20 text-white"
-            id="btn-save-draft"
-          >
-            <UploadCloud className="w-4 h-4" />
-            <span>Save Draft (.bacs)</span>
-          </button>
+          {/* Save Draft removed per offline-only preference */}
         </div>
       </div>
-      {draftSaved && (
-        <div className="px-5 pt-3">
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
-            Draft saved to your device. You can share this .bacs file with BACS for further preparation.
-          </div>
-        </div>
-      )}
+      
       {isIncompletePackage && (
         <div className="px-5 pb-3">
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
