@@ -139,12 +139,12 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
     { id: 'identity', label: 'Identity' },
     { id: 'contact', label: 'Contact' },
     { id: 'address', label: 'Location' },
+    { id: 'review', label: 'Review & Export' },
     { id: 'services', label: 'Services' },
     { id: 'products', label: 'Products' },
     { id: 'faq', label: 'FAQ' },
     { id: 'branding', label: 'Branding' },
-    { id: 'images', label: 'Images' },
-    { id: 'review', label: 'Review & Export' }
+    { id: 'images', label: 'Images' }
   ];
 
   // Helper to load templates
