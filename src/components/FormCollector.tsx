@@ -10,6 +10,7 @@ import {
   ProductItem, 
   ServiceItem, 
   FAQItem, 
+  ReviewItem,
   ThemeStyle, 
   ThemePresetName, 
   TypographyType 
@@ -58,7 +59,7 @@ interface FormCollectorProps {
   onChange: (updated: BusinessInfo) => void;
 }
 
-type TabType = 'identity' | 'contact' | 'address' | 'services' | 'products' | 'faq' | 'branding' | 'images' | 'review';
+type TabType = 'identity' | 'contact' | 'address' | 'services' | 'trust' | 'products' | 'faq' | 'branding' | 'images' | 'review';
 
 const themePresets: Record<ThemePresetName, {
   style: ThemeStyle;
@@ -165,6 +166,16 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
     });
   };
 
+  const updateServiceArea = (value: string) => {
+    onChange({
+      ...info,
+      serviceArea: value
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean)
+    });
+  };
+
   const updateCoords = (field: keyof BusinessInfo['coordinates'], value: string) => {
     onChange({
       ...info,
@@ -218,7 +229,9 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
       name: 'New Custom Service',
       description: 'A professional description outlining what is included and details about the offering.',
       price: '$99.00',
-      category: 'Consulting'
+      category: 'Consulting',
+      ctaLabel: 'Request Quote',
+      ctaUrl: ''
     };
     onChange({ ...info, services: [...info.services, newService] });
   };
@@ -241,10 +254,35 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
       price: '$45.00',
       category: 'Hardware',
       image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
-      purchaseUrl: ''
+      purchaseUrl: '',
+      ctaLabel: 'Buy Now',
+      ctaUrl: ''
     };
     onChange({ ...info, products: [...info.products, newProduct] });
   };
+
+  // Reviews & Trust Badges handlers
+  const addReview = () => {
+    const newReview = {
+      id: 'rev_' + Date.now(),
+      reviewer: 'Anonymous',
+      rating: 5,
+      review: 'Excellent service.',
+      date: new Date().toISOString().slice(0, 10),
+      source: 'Manual Customer Review' as any
+    };
+    onChange({ ...info, reviews: [...(info.reviews || []), newReview] });
+  };
+
+  const updateReview = (id: string, field: keyof any, value: any) => {
+    const updated = (info.reviews || []).map(r => r.id === id ? { ...r, [field]: value } : r);
+    onChange({ ...info, reviews: updated });
+  };
+
+  const removeReview = (id: string) => {
+    onChange({ ...info, reviews: (info.reviews || []).filter(r => r.id !== id) });
+  };
+
 
   const updateProduct = (id: string, field: keyof ProductItem, value: string) => {
     const updatedProducts = info.products.map(p => p.id === id ? { ...p, [field]: value } : p);
@@ -435,8 +473,16 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
     { id: 'category', label: 'Primary Category', status: info.category ? 'complete' : 'critical' },
     { id: 'description', label: 'Detailed Description', status: info.description.length > 20 ? 'complete' : 'critical' },
     { id: 'canonical', label: 'Canonical Live URL', status: info.canonicalUrl ? 'complete' : 'critical' },
-    { id: 'street', label: 'Street Address', status: info.address.street ? 'complete' : 'critical' },
-    { id: 'city', label: 'City & State', status: (info.address.city && info.address.state) ? 'complete' : 'critical' },
+    {
+      id: 'businessAddress',
+      label: 'Business Address',
+      status: (info.address.street && info.address.city && info.address.state && info.address.postalCode && info.address.country) ? 'complete' : 'critical'
+    },
+    {
+      id: 'serviceArea',
+      label: 'Service Area',
+      status: info.serviceArea && info.serviceArea.length > 0 ? 'complete' : 'critical'
+    },
     { id: 'phone', label: 'Phone Contact', status: info.phone ? 'complete' : 'critical' },
     { id: 'email', label: 'Email Contact', status: info.email ? 'complete' : 'critical' },
     { id: 'gbp', label: 'Google Business Profile', status: info.googleBusinessProfileUrl ? 'complete' : 'warning' },
@@ -505,12 +551,12 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-700 mb-1">Business Name *</label>
+                <label className="block text-xs font-semibold text-zinc-700 mb-1">Google Business Name *</label>
                 <input
                   type="text"
                   value={info.name}
                   onChange={e => updateProp('name', e.target.value)}
-                  placeholder="e.g. Acme Corporation"
+                  placeholder="e.g. Acme Corporation (as listed on Google)"
                   className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                   required
                 />
@@ -575,6 +621,34 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
                   required
                 />
                 <p className="text-[10px] text-zinc-400 mt-1 font-medium leading-normal">Establishes endpoints for sitemaps, crawlers and schema graph associations.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 mb-1">Registered Business Name <span className="text-zinc-400 font-normal">(Optional)</span></label>
+                {info.cacRegistered ? (
+                  <input
+                    type="text"
+                    value={info.registeredBusinessName || ''}
+                    onChange={e => updateProp('registeredBusinessName', e.target.value)}
+                    placeholder="e.g. Acme Corporation Ltd (Registered)"
+                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={info.registeredBusinessName || ''}
+                    onChange={e => updateProp('registeredBusinessName', e.target.value)}
+                    placeholder="Hidden until 'CAC Registered' is checked"
+                    className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 bg-zinc-50"
+                    disabled
+                  />
+                )}
+                <div className="mt-2 text-[10px]">
+                  <label className="inline-flex items-center gap-2">
+                    <input type="checkbox" checked={!!info.cacRegistered} onChange={e => updateProp('cacRegistered', e.target.checked)} />
+                    <span className="text-xs">Business is CAC Registered</span>
+                  </label>
+                  <p className="text-[10px] text-zinc-400 mt-1">Registering your business improves credibility and enables additional authority signals. This is optional and will not block export.</p>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-700 mb-1">Alternative Website Link <span className="text-zinc-400 font-normal">(Optional)</span></label>
@@ -790,6 +864,19 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
               </div>
             </div>
 
+            <div>
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">Service Area *</label>
+              <input
+                type="text"
+                value={info.serviceArea.join(', ')}
+                onChange={e => updateServiceArea(e.target.value)}
+                placeholder="e.g. Portland Metro, Beaverton, Nationwide"
+                className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+              <p className="text-[10px] text-zinc-500 mt-1">Separate multiple cities or regions with commas.</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-zinc-700 mb-1">Postal / Zip Code *</label>
@@ -904,12 +991,30 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
                       rows={2}
                       className="w-full p-2 text-xs border border-zinc-200 rounded bg-white"
                     />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        value={s.ctaLabel || ''}
+                        onChange={e => updateService(s.id, 'ctaLabel', e.target.value)}
+                        placeholder="CTA Label (e.g. Book Appointment)"
+                        className="px-2 py-1 text-xs border border-zinc-200 rounded bg-white"
+                      />
+                      <input
+                        type="url"
+                        value={s.ctaUrl || ''}
+                        onChange={e => updateService(s.id, 'ctaUrl', e.target.value)}
+                        placeholder="CTA URL (e.g. https://wa.me/...)"
+                        className="px-2 py-1 text-xs border border-zinc-200 rounded bg-white"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
         )}
+
+        
 
         {/* PRODUCTS TAB */}
         {activeTab === 'products' && (
@@ -978,6 +1083,23 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
                         value={p.purchaseUrl || ''}
                         onChange={e => updateProduct(p.id, 'purchaseUrl', e.target.value)}
                         placeholder="Product Purchase / Payment Link"
+                        className="px-2 py-1 text-xs border border-zinc-200 rounded bg-white"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        value={p.ctaLabel || ''}
+                        onChange={e => updateProduct(p.id, 'ctaLabel', e.target.value)}
+                        placeholder="CTA Label (e.g. Buy Now)"
+                        className="px-2 py-1 text-xs border border-zinc-200 rounded bg-white"
+                      />
+                      <input
+                        type="url"
+                        value={p.ctaUrl || ''}
+                        onChange={e => updateProduct(p.id, 'ctaUrl', e.target.value)}
+                        placeholder="CTA URL (e.g. https://...)"
                         className="px-2 py-1 text-xs border border-zinc-200 rounded bg-white"
                       />
                     </div>

@@ -44,6 +44,8 @@ export interface ProductItem {
   category: string;
   image: string;
   purchaseUrl?: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
 }
 
 export interface ServiceItem {
@@ -52,12 +54,31 @@ export interface ServiceItem {
   description: string;
   price: string;
   category: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
 }
 
 export interface FAQItem {
   id: string;
   question: string;
   answer: string;
+}
+
+export type ReviewSource = 'Google' | 'Facebook' | 'Trustpilot' | 'Yelp' | 'Website' | 'Manual Customer Review';
+
+export interface ReviewItem {
+  id: string;
+  reviewer: string;
+  rating: number;
+  review: string;
+  date: string;
+  source: ReviewSource;
+}
+
+export interface TrustBadge {
+  id: string;
+  title: string;
+  description?: string;
 }
 
 export interface GeoCoordinates {
@@ -80,6 +101,8 @@ export interface ThemeConfig {
 
 export interface BusinessInfo {
   name: string;
+  registeredBusinessName?: string;
+  cacRegistered?: boolean;
   category: string;
   secondaryCategory?: string;
   description: string;
@@ -97,10 +120,13 @@ export interface BusinessInfo {
   products: ProductItem[];
   services: ServiceItem[];
   faqs: FAQItem[];
+  reviews: ReviewItem[];
+  trustBadges: TrustBadge[];
   images: string[];
   logo: string;
   coordinates: GeoCoordinates;
   canonicalUrl: string;
+  serviceArea: string[];
   theme: ThemeConfig;
   typography: TypographyType;
   sectionOrder: string[];

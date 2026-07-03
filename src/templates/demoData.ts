@@ -9,6 +9,7 @@ export const DEFAULT_SECTION_ORDER = [
   'hero',
   'facts',
   'services',
+  'trust',
   'products',
   'gallery',
   'faq',
@@ -125,6 +126,9 @@ export const demoTemplates: { [key: string]: { label: string; data: BusinessInfo
         longitude: '-122.6514'
       },
       canonicalUrl: 'https://thedailygrindpdx.github.io',
+      serviceArea: ['Portland, OR', 'Lake Oswego, OR', 'Beaverton, OR'],
+      reviews: [],
+      trustBadges: [],
       theme: {
         style: 'warm',
         primaryColor: '#7c2d12', // deep orange/brown
@@ -218,6 +222,9 @@ export const demoTemplates: { [key: string]: { label: string; data: BusinessInfo
         longitude: '-73.9912'
       },
       canonicalUrl: 'https://pixelcraft.pages.dev',
+      serviceArea: ['New York City metro', 'Manhattan', 'Brooklyn'],
+      reviews: [],
+      trustBadges: [],
       theme: {
         style: 'minimal',
         primaryColor: '#3b82f6', // modern neon blue
@@ -321,6 +328,9 @@ export const demoTemplates: { [key: string]: { label: string; data: BusinessInfo
         longitude: '-104.9903'
       },
       canonicalUrl: 'https://flowtechplumbing.github.io',
+      serviceArea: ['Denver Metro', 'Aurora, CO', 'Lakewood, CO'],
+      reviews: [],
+      trustBadges: [],
       theme: {
         style: 'corporate',
         primaryColor: '#0f766e', // professional dark teal
@@ -407,6 +417,7 @@ export const demoTemplates: { [key: string]: { label: string; data: BusinessInfo
         longitude: '-122.4014'
       },
       canonicalUrl: 'https://vanguardadvisory.com',
+      serviceArea: ['San Francisco Bay Area', 'Bay Area', 'Northern California'],
       theme: {
         style: 'mono',
         primaryColor: '#000000', // high-contrast black
@@ -464,6 +475,7 @@ export const demoTemplates: { [key: string]: { label: string; data: BusinessInfo
         longitude: ''
       },
       canonicalUrl: 'https://my-business.pages.dev',
+      serviceArea: ['Nationwide'],
       theme: {
         style: 'minimal',
         primaryColor: '#4f46e5',

@@ -119,6 +119,33 @@ export function generateGraphJsonLd(info: BusinessInfo): string {
     info.socials.youtube
   ].filter(Boolean);
 
+  const serviceAreaNodes = (info.serviceArea || [])
+    .filter(Boolean)
+    .map(area => ({
+      '@type': 'AdministrativeArea',
+      'name': area
+    }));
+
+  const reviewNodes = (info.reviews || [])
+    // Only include Google reviews and limit to the most recent 5 (as displayed on Google Business)
+    .filter(r => r && r.date && r.source === 'Google')
+    .map(r => ({
+      '@type': 'Review',
+      'author': { '@type': 'Person', 'name': r.reviewer },
+      'datePublished': r.date,
+      'reviewBody': r.review,
+      'reviewRating': { '@type': 'Rating', 'ratingValue': r.rating },
+      ...(r.source ? { 'publisher': { '@type': 'Organization', 'name': r.source } } : {})
+    }))
+    .sort((a: any, b: any) => new Date(b.datePublished).getTime() - new Date(a.datePublished).getTime())
+    .slice(0, 5);
+
+  const aggregateRating = reviewNodes.length > 0 ? {
+    '@type': 'AggregateRating',
+    'ratingValue': (info.reviews!.reduce((s, r) => s + (r.rating || 0), 0) / reviewNodes.length).toFixed(2),
+    'reviewCount': reviewNodes.length
+  } : undefined;
+
   const localBusinessNode = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
@@ -136,7 +163,9 @@ export function generateGraphJsonLd(info: BusinessInfo): string {
     'contactPoint': contactPoint.length === 1 ? contactPoint[0] : contactPoint,
     'sameAs': sameAs,
     'priceRange': '$$',
-    'knowsAbout': info.secondaryCategory ? [info.category, info.secondaryCategory] : info.category
+    'knowsAbout': info.secondaryCategory ? [info.category, info.secondaryCategory] : info.category,
+    ...(serviceAreaNodes.length ? { serviceArea: serviceAreaNodes } : {}),
+    ...(reviewNodes.length ? { aggregateRating: aggregateRating, review: reviewNodes } : {})
   };
 
   const organizationNode = {
@@ -147,7 +176,8 @@ export function generateGraphJsonLd(info: BusinessInfo): string {
     'url': canonical,
     'logo': logoUrl,
     'sameAs': sameAs,
-    'contactPoint': contactPoint.length === 1 ? contactPoint[0] : contactPoint
+    'contactPoint': contactPoint.length === 1 ? contactPoint[0] : contactPoint,
+    ...(serviceAreaNodes.length ? { serviceArea: serviceAreaNodes } : {})
   };
 
   const websiteNode = {
@@ -199,7 +229,9 @@ export function generateGraphJsonLd(info: BusinessInfo): string {
       'category': srv.category
     },
     'price': srv.price.replace(/[^0-9.]/g, '') || undefined,
-    'priceCurrency': srv.price ? 'USD' : undefined
+    'priceCurrency': srv.price ? 'USD' : undefined,
+    'url': srv.ctaUrl || undefined,
+    'name': srv.ctaLabel || undefined
   }));
 
   const productsOffers = info.products.map((prd, idx) => ({
@@ -212,7 +244,9 @@ export function generateGraphJsonLd(info: BusinessInfo): string {
       'image': prd.image
     },
     'price': prd.price.replace(/[^0-9.]/g, '') || undefined,
-    'priceCurrency': prd.price ? 'USD' : undefined
+    'priceCurrency': prd.price ? 'USD' : undefined,
+    'url': prd.ctaUrl || prd.purchaseUrl || undefined,
+    'name': prd.ctaLabel || undefined
   }));
 
   const offerCatalogNode = (servicesOffers.length > 0 || productsOffers.length > 0) ? {
@@ -407,7 +441,7 @@ a:hover {
 
 /* Header */
 header {
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   width: 100%;
@@ -551,7 +585,14 @@ section {
 .hero-desc {
   font-size: 1.125rem;
   line-height: 1.6;
-  margin-bottom: 2.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.hero-location-note {
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+  color: rgba(0, 0, 0, 0.72);
 }
 
 .hero-ctas {
@@ -726,6 +767,79 @@ section {
   border: var(--border);
   border-radius: 4px;
   color: var(--text);
+}
+
+.trust-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.trust-summary-card,
+.trust-badges-card {
+  background-color: var(--card-bg);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  box-shadow: var(--shadow);
+}
+
+.trust-summary-card h3,
+.trust-badges-card h3 {
+  margin-bottom: 1rem;
+}
+
+.trust-badge-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.trust-badge-list li {
+  padding: 1rem;
+  border: var(--border);
+  border-radius: var(--radius);
+  background-color: var(--secondary);
+}
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.review-card {
+  background-color: var(--card-bg);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.review-rating {
+  font-size: 1rem;
+  color: #f59e0b;
+  letter-spacing: 0.05em;
+}
+
+.review-text {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.review-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: var(--text-muted);
 }
 
 .service-price {
@@ -1349,12 +1463,13 @@ export function generateManifest(info: BusinessInfo): string {
     'description': info.description || 'Verified Business Entity Details',
     'icons': [
       {
-        'src': '/favicon.svg',
+        'src': 'favicon.svg',
         'type': 'image/svg+xml',
         'sizes': '512x512'
       }
     ],
-    'start_url': '/',
+    'start_url': '.',
+    'scope': '.',
     'background_color': info.theme.bgColor || '#ffffff',
     'theme_color': info.theme.primaryColor || '#4f46e5',
     'display': 'standalone',
@@ -1386,10 +1501,34 @@ export function generateEntityJson(info: BusinessInfo): string {
     },
     'address': info.address,
     'coordinates': info.coordinates,
+    'service_area': info.serviceArea && info.serviceArea.length > 0 ? info.serviceArea : undefined,
     'social_links': info.socials,
     'opening_hours': info.openingHours,
-    'services': info.services,
-    'products': info.products,
+    'services': info.services.map(srv => ({
+      ...srv,
+      ctaLabel: srv.ctaLabel || undefined,
+      ctaUrl: srv.ctaUrl || undefined
+    })),
+    'products': info.products.map(prd => ({
+      ...prd,
+      ctaLabel: prd.ctaLabel || undefined,
+      ctaUrl: prd.ctaUrl || prd.purchaseUrl || undefined
+    })),
+    // Expose only Google reviews (most recent 5) and corresponding aggregate rating for export
+    'reviews': (() => {
+      const google = (info.reviews || []).filter(r => r && r.date && r.source === 'Google')
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 5);
+      return google.length ? google : undefined;
+    })(),
+    'aggregate_rating': (() => {
+      const google = (info.reviews || []).filter(r => r && r.date && r.source === 'Google');
+      if (!google.length) return undefined;
+      return {
+        ratingValue: (google.reduce((s, r) => s + (r.rating || 0), 0) / google.length).toFixed(2),
+        reviewCount: google.length
+      };
+    })(),
     'faqs': info.faqs,
     'schema_mappings': {
       'canonical_url': info.canonicalUrl,
@@ -1422,6 +1561,7 @@ ${info.description}
 - **Physical Address:** ${info.address.street}, ${info.address.city}, ${info.address.state} ${info.address.postalCode}, ${info.address.country}
 - **Primary Phone:** ${info.phone}${info.phone2 ? ` (Secondary Phone: ${info.phone2})` : ''}
 - **Primary Email:** ${info.email}
+- **Service Area:** ${info.serviceArea && info.serviceArea.length > 0 ? info.serviceArea.join(', ') : 'Not specified'}
 - **Google Business Profile:** ${info.googleBusinessProfileUrl || 'None specified'}
 - **Google Maps Navigation:** ${info.googleMapsUrl || 'None specified'}
 
@@ -1649,13 +1789,24 @@ export function generateIndexHtml(info: BusinessInfo): string {
   <link rel="alternate" type="text/plain" title="AI Machine Profile" href="llms.txt">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">`;
 
-  // Navigation Links - Filter out 'hero' and 'contact' to avoid double 'Contact' links
+  const sectionLabel = (sec: string): string => {
+    switch (sec) {
+      case 'trust': return 'Trust & Reputation';
+      case 'faq': return 'FAQ';
+      case 'products': return 'Products';
+      case 'services': return 'Services';
+      case 'gallery': return 'Gallery';
+      case 'facts': return 'Facts';
+      case 'contact': return 'Contact';
+      default: return sec.charAt(0).toUpperCase() + sec.slice(1);
+    }
+  };
+
+  // Navigation Links - Filter out 'hero' and 'contact' to avoid duplicate Contact links
   const navLinksMarkup = info.sectionOrder
     .filter(s => s !== 'hero' && s !== 'contact')
-    .map(sec => {
-      const label = sec.charAt(0).toUpperCase() + sec.slice(1);
-      return `<li><a href="#${sec}">${label}</a></li>`;
-    }).join('\n        ');
+    .map(sec => `<li><a href="#${sec}">${sectionLabel(sec)}</a></li>`)
+    .join('\n        ');
 
   // RENDER SECTIONS DYNAMICALLY
   const sectionsContent = info.sectionOrder.map(sectionId => {
@@ -1669,6 +1820,7 @@ export function generateIndexHtml(info: BusinessInfo): string {
           ${info.tagline ? `<span class="hero-tagline">${escapeHtml(info.tagline)}</span>` : `<span class="hero-tagline">${escapeHtml(info.category)}</span>`}
           <h1 class="hero-title">${escapeHtml(info.name || 'Welcome to Our Entity Hub')}</h1>
           <p class="hero-desc">${escapeHtml(info.description || 'Provide a professional description of your business to get started.')}</p>
+          ${info.serviceArea && info.serviceArea.length > 0 ? `<p class="hero-location-note">Serving customers in ${escapeHtml(info.serviceArea.join(', '))}.</p>` : ''}
           <div class="hero-ctas">
             ${info.phone ? `<a href="tel:${info.phone.replace(/\\s+/g, '')}" class="btn btn-primary" aria-label="Call Business Phone">Call Now</a>` : ''}
             ${info.googleMapsUrl ? `<a href="${info.googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" aria-label="Get Directions on Google Maps">Directions</a>` : ''}
@@ -1686,7 +1838,13 @@ export function generateIndexHtml(info: BusinessInfo): string {
               ${info.secondaryCategory ? `<span style="opacity: 0.6; font-weight: 400; display: block; margin-top: 0.15rem; font-size: 0.8rem;">Secondary: ${escapeHtml(info.secondaryCategory)}</span>` : ''}
             </p>
             <h4 style="margin-bottom: 0.25rem;">Location</h4>
-            <p style="font-size: 0.85rem; margin-bottom: 0; line-height: 1.4;">${escapeHtml(info.address.city || 'Available Nationwide')}, ${escapeHtml(info.address.state || '')}</p>
+            <p style="font-size: 0.85rem; margin-bottom: 0.75rem; line-height: 1.4;">
+              ${escapeHtml(info.address.street ? `${info.address.city || 'City'}, ${info.address.state || ''}` : (info.address.city || info.address.state ? `${info.address.city || ''}${info.address.city && info.address.state ? ', ' : ''}${info.address.state || ''}` : 'Available Nationwide'))}
+            </p>
+            ${info.serviceArea && info.serviceArea.length > 0 ? `
+            <h4 style="margin-bottom: 0.25rem;">Service Area</h4>
+            <p style="font-size: 0.85rem; margin-bottom: 0; line-height: 1.4;">${escapeHtml(info.serviceArea.join(', '))}</p>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -1765,9 +1923,63 @@ export function generateIndexHtml(info: BusinessInfo): string {
               <span class="service-badge">${escapeHtml(srv.category)}</span>
             </div>
           </div>
-          <div class="service-price">${escapeHtml(srv.price)}</div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem; min-width: 180px;">
+            <div class="service-price">${escapeHtml(srv.price)}</div>
+            ${srv.ctaUrl ? `<a href="${srv.ctaUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="font-size:0.85rem; padding:0.7rem 1rem;">${escapeHtml(srv.ctaLabel || 'Request Quote')}</a>` : info.whatsapp ? `<a href="https://wa.me/${info.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi, I'm interested in your ${srv.name} service.`)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size:0.85rem; padding:0.7rem 1rem;">WhatsApp</a>` : ''}
+          </div>
         </div>`).join('')}
       </div>
+    </div>
+  </section>`;
+
+      case 'trust':
+        return `  <!-- TRUST & REPUTATION SECTION -->
+  <section class="trust-section" id="trust" style="background-color: var(--secondary); border-top: var(--border); border-bottom: var(--border);">
+    <div class="container">
+      <div class="catalog-header">
+        <span class="hero-tagline">Trust</span>
+        <h2>Google Reviews</h2>
+        <p>Recent public reviews from your Google Business Profile. Displaying the most recent five Google reviews helps visitors and AI agents quickly assess recent customer experience. Keep responses constructive and factual.</p>
+      </div>
+      ${(() => {
+        const google = (info.reviews || [])
+          .filter(r => r && r.date && r.source === 'Google')
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 5);
+
+        if (!google || google.length === 0) {
+          return `<div class="card" style="padding:1.5rem; text-align:center;">No Google reviews available. Encourage customers to leave honest feedback on your Google Business Profile.</div>`;
+        }
+
+        const avg = (google.reduce((s, r) => s + (r.rating || 0), 0) / google.length).toFixed(1);
+
+        return `
+      <div class="trust-grid">
+        <div class="trust-summary-card">
+          <h3>Ratings Overview</h3>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+            <div>
+              <div style="font-size:2.5rem; font-weight:800;">${escapeHtml(String(avg))}</div>
+              <div style="font-size:0.95rem; color:var(--text-muted);">Average rating from ${google.length} Google review${google.length === 1 ? '' : 's'}</div>
+            </div>
+            <div style="text-align:right; color:var(--text-muted); font-size:0.9rem;">Source: Google Business Profile</div>
+          </div>
+          <p style="margin-top:0.85rem; font-size:0.92rem; color:var(--text-muted);">These are the latest public reviews available on Google. Use them to identify areas for improvement and to respond to feedback professionally.</p>
+        </div>
+      </div>
+
+      <div class="reviews-grid">
+        ${google.map(review => `
+        <article class="review-card">
+          <div class="review-rating">${'★'.repeat(Math.round(review.rating))}${'☆'.repeat(5 - Math.round(review.rating))}</div>
+          <p class="review-text">${escapeHtml(review.review)}</p>
+          <div class="review-footer">
+            <div><strong>${escapeHtml(review.reviewer)}</strong></div>
+            <div>Google · ${escapeHtml(new Date(review.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))}</div>
+          </div>
+        </article>`).join('')}
+      </div>`;
+      })()}
     </div>
   </section>`;
 
@@ -1793,9 +2005,9 @@ export function generateIndexHtml(info: BusinessInfo): string {
             <p class="product-desc">${escapeHtml(prd.description)}</p>
             <div class="product-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; width: 100%;">
               <span class="product-price">${escapeHtml(prd.price)}</span>
-              <div style="display: flex; gap: 0.35rem; align-items: center;">
-                ${prd.purchaseUrl ? `<a href="${prd.purchaseUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none;">Buy Now</a>` : ''}
-                ${info.whatsapp ? `<a href="https://wa.me/${info.whatsapp.replace(/[^0-9]/g, '')}?text=Hi,%20I'm%20interested%20in%20your%20${encodeURIComponent(prd.name)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none;">Inquire</a>` : ''}
+              <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
+                ${prd.ctaUrl ? `<a href="${prd.ctaUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none;">${escapeHtml(prd.ctaLabel || 'Learn More')}</a>` : prd.purchaseUrl ? `<a href="${prd.purchaseUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none;">${escapeHtml(prd.ctaLabel || 'Buy Now')}</a>` : ''}
+                ${!prd.ctaUrl && info.whatsapp ? `<a href="https://wa.me/${info.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi, I'm interested in your ${prd.name}.`)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none;">Inquire</a>` : ''}
               </div>
             </div>
           </div>
@@ -1832,6 +2044,7 @@ export function generateIndexHtml(info: BusinessInfo): string {
         <span class="hero-tagline">Answers</span>
         <h2>Frequently Asked Questions</h2>
         <p>Quick responses to client questions regarding scheduling, services, and corporate policy.</p>
+        ${info.serviceArea && info.serviceArea.length > 0 ? `<p style="margin-top: 0.75rem; font-size: 0.95rem; color: var(--text-muted);">We serve customers across ${escapeHtml(info.serviceArea.join(', '))}. This FAQ helps visitors find answers for service coverage, bookings, and availability.</p>` : ''}
       </div>
       <div class="faq-list">
         ${info.faqs.map((faq, idx) => `
@@ -1862,14 +2075,25 @@ export function generateIndexHtml(info: BusinessInfo): string {
           
           <div style="display: flex; flex-direction: column; gap: 1.5rem; margin: 2rem 0;">
             ${info.address.street ? `
-            <div id="contact-address" style="display: flex; gap: 1rem; align-items: center;">
+            <div id="contact-address" style="display: flex; gap: 1rem; align-items: flex-start;">
               <span style="font-size: 1.5rem;">📍</span>
               <div>
-                <h4 style="margin-bottom: 0.1rem;">Address</h4>
+                <h4 style="margin-bottom: 0.1rem;">Physical Location</h4>
                 <p style="margin: 0; font-size: 0.95rem; font-weight: 500; line-height: 1.4;">
                   ${escapeHtml(info.address.street)}<br>
                   ${escapeHtml(info.address.city || '')}${info.address.state ? `, ${escapeHtml(info.address.state)}` : ''} ${escapeHtml(info.address.postalCode || '')}<br>
                   ${escapeHtml(info.address.country || '')}
+                </p>
+              </div>
+            </div>` : ''}
+
+            ${info.serviceArea && info.serviceArea.length > 0 ? `
+            <div style="display: flex; gap: 1rem; align-items: flex-start;">
+              <span style="font-size: 1.5rem;">🌍</span>
+              <div>
+                <h4 style="margin-bottom: 0.1rem;">Service Area</h4>
+                <p style="margin: 0; font-size: 0.95rem; font-weight: 500; line-height: 1.4;">
+                  ${escapeHtml(info.serviceArea.join(', '))}
                 </p>
               </div>
             </div>` : ''}
@@ -1955,6 +2179,37 @@ export function generateIndexHtml(info: BusinessInfo): string {
             ${info.socials.linkedin ? `<a href="${info.socials.linkedin}" target="_blank" rel="noopener noreferrer" class="footer-social-icon" aria-label="Visit LinkedIn Profile">LN</a>` : ''}
             ${info.socials.youtube ? `<a href="${info.socials.youtube}" target="_blank" rel="noopener noreferrer" class="footer-social-icon" aria-label="Visit YouTube Channel">YT</a>` : ''}
   `.trim();
+
+  const stickyCtaAction = info.whatsapp
+    ? {
+        href: `https://wa.me/${info.whatsapp.replace(/[^0-9]/g, '')}`,
+        label: 'Message on WhatsApp'
+      }
+    : info.phone
+      ? {
+          href: `tel:${info.phone.replace(/\s+/g, '')}`,
+          label: 'Call Now'
+        }
+      : info.services.find(srv => srv.ctaUrl)
+        ? {
+            href: info.services.find(srv => srv.ctaUrl)!.ctaUrl!,
+            label: info.services.find(srv => srv.ctaUrl)!.ctaLabel || 'Book Service'
+          }
+        : info.products.find(prd => prd.ctaUrl || prd.purchaseUrl)
+          ? {
+              href: info.products.find(prd => prd.ctaUrl || prd.purchaseUrl)!.ctaUrl || info.products.find(prd => prd.purchaseUrl)!.purchaseUrl!,
+              label: info.products.find(prd => prd.ctaLabel || prd.purchaseUrl)!.ctaLabel || 'View Product'
+            }
+          : null;
+
+  const stickyCtaMarkup = stickyCtaAction ? `
+  <aside class="sticky-cta" role="region" aria-label="Primary contact action">
+    <div>
+      <p><strong>Ready to connect?</strong> Tap the button to reach us instantly.</p>
+    </div>
+    <a href="${stickyCtaAction.href}" target="_blank" rel="noopener noreferrer" class="btn btn-primary sticky-cta-btn">${escapeHtml(stickyCtaAction.label)}</a>
+  </aside>
+  ` : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -2047,7 +2302,7 @@ ${sectionsContent}
           <h4>Navigations</h4>
           <ul class="footer-links">
             <li><a href="#hero">Top</a></li>
-            ${info.sectionOrder.filter(s => s !== 'hero').map(sec => `<li><a href="#${sec}">${sec.charAt(0).toUpperCase() + sec.slice(1)}</a></li>`).join('\n            ')}
+            ${info.sectionOrder.filter(s => s !== 'hero').map(sec => `<li><a href="#${sec}">${sectionLabel(sec)}</a></li>`).join('\n            ')}
           </ul>
         </div>
       </div>
@@ -2067,6 +2322,8 @@ ${sectionsContent}
       </div>
     </div>
   </footer>
+
+  ${stickyCtaMarkup}
 
   <!-- GALLERY LIGHTBOX OVERLAY -->
   <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Image zoom view">

@@ -46,16 +46,20 @@ export default function CompletenessCheck({ info }: CompletenessCheckProps) {
       desc: 'Establishes absolute resource endpoints for your sitemaps and graph.'
     },
     {
-      id: 'street',
-      label: 'Street Address',
-      status: info.address.street ? 'complete' : 'critical',
-      desc: 'Fills PostalAddress schema streetAddress.'
+      id: 'businessAddress',
+      label: 'Business Address',
+      status: (info.address.street && info.address.city && info.address.state && info.address.postalCode && info.address.country) ? 'complete' : 'critical',
+      desc: info.address.street && info.address.city && info.address.state && info.address.postalCode && info.address.country
+        ? 'Physical location used for PostalAddress schema and trust signals.'
+        : 'Business address is missing. A physical location improves trust and enables accurate map references.'
     },
     {
-      id: 'city',
-      label: 'City & State',
-      status: (info.address.city && info.address.state) ? 'complete' : 'critical',
-      desc: 'Maps LocalBusiness geographic region.'
+      id: 'serviceArea',
+      label: 'Service Area',
+      status: info.serviceArea && info.serviceArea.length > 0 ? 'complete' : 'critical',
+      desc: info.serviceArea && info.serviceArea.length > 0
+        ? 'Defines the service area for customers and AI systems.'
+        : 'Service Area is missing. This helps customers and AI systems understand where your business operates.'
     },
     {
       id: 'phone',
