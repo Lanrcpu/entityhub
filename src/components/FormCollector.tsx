@@ -173,6 +173,7 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
         .split(',')
         .map(item => item.trim())
         .filter(Boolean)
+        .slice(0, 10) // enforce maximum of 10 service area entries
     });
   };
 

@@ -46,6 +46,14 @@ export default function CompletenessCheck({ info }: CompletenessCheckProps) {
       desc: 'Establishes absolute resource endpoints for your sitemaps and graph.'
     },
     {
+      id: 'cac',
+      label: 'Registered Business Name',
+      status: info.cacRegistered ? (info.registeredBusinessName ? 'complete' : 'warning') : 'critical',
+      desc: info.cacRegistered
+        ? (info.registeredBusinessName ? 'Official registered name used for legal and authority signals.' : 'Registered but no registered business name provided.')
+        : 'Business is not marked as officially registered. Marking this improves authority signals and is recommended.'
+    },
+    {
       id: 'businessAddress',
       label: 'Business Address',
       status: (info.address.street && info.address.city && info.address.state && info.address.postalCode && info.address.country) ? 'complete' : 'critical',
