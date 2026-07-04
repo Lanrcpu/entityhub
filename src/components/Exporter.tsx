@@ -45,8 +45,8 @@ export default function Exporter({ info }: ExporterProps) {
   const exportFiles: ExportFile[] = [
     { path: 'index.html', category: 'html', getContent: generateIndexHtml },
     { path: '404.html', category: 'html', getContent: generate404Html },
-    { path: 'css/style.css', category: 'css', getContent: generateStyleCss },
-    { path: 'js/main.js', category: 'js', getContent: generateMainJs },
+    { path: 'style.css', category: 'css', getContent: generateStyleCss },
+    { path: 'main.js', category: 'js', getContent: generateMainJs },
     { path: 'schema/graph.jsonld', category: 'schema', getContent: generateGraphJsonLd },
     { path: 'entity.json', category: 'json', getContent: generateEntityJson },
     { path: 'llms.txt', category: 'text', getContent: generateLlmsText },

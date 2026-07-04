@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   BusinessInfo, 
   OpeningHour, 
@@ -52,14 +52,14 @@ import {
   generateReadme,
   generate404Html
 } from '../utils/generator';
-import BacsAssist from './BacsAssist';
+import BacsAssist, { getMissingCriticalFields } from './BacsAssist';
 
 interface FormCollectorProps {
   info: BusinessInfo;
   onChange: (updated: BusinessInfo) => void;
 }
 
-type TabType = 'identity' | 'contact' | 'address' | 'services' | 'trust' | 'products' | 'faq' | 'branding' | 'images' | 'googleReviews' | 'review';
+type TabType = 'identity' | 'contact' | 'address' | 'hours' | 'services' | 'trust' | 'products' | 'faq' | 'branding' | 'images' | 'googleReviews' | 'review';
 
 const themePresets: Record<ThemePresetName, {
   style: ThemeStyle;
@@ -134,11 +134,15 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
   const [exportSuccess, setExportSuccess] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const tabsContainerRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState<boolean>(false);
+  const [canScrollRight, setCanScrollRight] = useState<boolean>(false);
 
   const tabsList: { id: TabType; label: string }[] = [
     { id: 'identity', label: 'Identity' },
     { id: 'contact', label: 'Contact' },
     { id: 'address', label: 'Location' },
+    { id: 'hours', label: 'Hours' },
     { id: 'services', label: 'Services' },
     { id: 'products', label: 'Products' },
     { id: 'faq', label: 'FAQ' },
@@ -155,6 +159,25 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
       onChange(JSON.parse(JSON.stringify(demoTemplates[key].data)));
     }
   };
+
+  // Initialize scroll button visibility
+  useEffect(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    const check = () => {
+      setCanScrollLeft(el.scrollLeft > 5);
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 5);
+    };
+    check();
+    // listen for resizes
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    el.addEventListener('scroll', check);
+    return () => {
+      ro.disconnect();
+      el.removeEventListener('scroll', check);
+    };
+  }, []);
 
   const updateProp = (key: keyof BusinessInfo, value: any) => {
     onChange({ ...info, [key]: value });
@@ -202,6 +225,12 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
   const updateHour = (index: number, field: keyof OpeningHour, value: any) => {
     const updatedHours = [...info.openingHours];
     updatedHours[index] = { ...updatedHours[index], [field]: value };
+    onChange({ ...info, openingHours: updatedHours });
+  };
+
+  const updateHourFields = (index: number, values: Partial<OpeningHour>) => {
+    const updatedHours = [...info.openingHours];
+    updatedHours[index] = { ...updatedHours[index], ...values };
     onChange({ ...info, openingHours: updatedHours });
   };
 
@@ -447,8 +476,8 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
       const exportFiles = [
         { path: 'index.html', getContent: generateIndexHtml },
         { path: '404.html', getContent: generate404Html },
-        { path: 'css/style.css', getContent: generateStyleCss },
-        { path: 'js/main.js', getContent: generateMainJs },
+        { path: 'style.css', getContent: generateStyleCss },
+        { path: 'main.js', getContent: generateMainJs },
         { path: 'schema/graph.jsonld', getContent: generateGraphJsonLd },
         { path: 'entity.json', getContent: generateEntityJson },
         { path: 'llms.txt', getContent: generateLlmsText },
@@ -504,6 +533,7 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
     { id: 'gbp', label: 'Google Business Profile', status: info.googleBusinessProfileUrl ? 'complete' : 'warning' },
     { id: 'maps', label: 'Google Maps Navigation', status: info.googleMapsUrl ? 'complete' : 'warning' },
     { id: 'services', label: 'Services Catalog', status: info.services.length > 0 ? 'complete' : 'warning' },
+    { id: 'hours', label: 'Operating Hours', status: info.openingHours && info.openingHours.length === 7 ? 'complete' : 'critical' },
     { id: 'images', label: 'Gallery Images', status: info.images.length > 0 ? 'complete' : 'warning' }
   ];
 
@@ -533,10 +563,61 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
           <option value="blank">⬜ Blank Start / New Business</option>
         </select>
       </div>
+      {/* Critical top review */}
+      {(() => {
+        const missing = getMissingCriticalFields(info);
+        if (missing.length === 0) return null;
+        return (
+          <div className="p-3 bg-rose-50 border-l-4 border-rose-300 text-rose-800 text-sm font-semibold flex items-center justify-between gap-3">
+            <div>
+              <div><strong>Critical Information Missing:</strong> There {missing.length === 1 ? 'is' : 'are'} {missing.length} missing field{missing.length === 1 ? '' : 's'} required to produce a valid Entity Hub sitemap or structured schema graph. Please provide them in the form.</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  // scroll to top of form so user can see the banner and then details
+                  const el = document.getElementById('bacs-assist-panel');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+                className="text-xs bg-rose-600 text-white px-3 py-1.5 rounded-md font-bold"
+              >
+                Show details
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
-      {/* Tabs list index */}
-      <div className="flex border-b border-zinc-200 overflow-x-auto scrollbar-none bg-zinc-50/50">
-        {tabsList.map(t => (
+      {/* Tabs list index with scroll arrows */}
+      <div className="relative">
+        <div className="flex items-center border-b border-zinc-200 overflow-hidden bg-zinc-50/50">
+          <button
+            id="tabs-scroll-left"
+            aria-label="Scroll tabs left"
+            onClick={() => {
+              const el = tabsContainerRef.current;
+              if (!el) return;
+              el.scrollBy({ left: -320, behavior: 'smooth' });
+            }}
+            className={`p-2 text-zinc-600 hover:bg-zinc-100 rounded-l-md ${canScrollLeft ? '' : 'invisible'}`}
+            aria-hidden={!canScrollLeft}
+            aria-disabled={!canScrollLeft}
+          >
+            ‹
+          </button>
+          <div
+            ref={(el) => { tabsContainerRef.current = el; }}
+            className="flex-1 overflow-x-auto scrollbar-none"
+            style={{ scrollBehavior: 'smooth' }}
+            onScroll={() => {
+              const el = tabsContainerRef.current;
+              if (!el) return;
+              setCanScrollLeft(el.scrollLeft > 5);
+              setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 5);
+            }}
+          >
+            <div className="flex">
+              {tabsList.map(t => (
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
@@ -551,7 +632,22 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
           >
             {t.label}
           </button>
-        ))}
+              ))}
+            </div>
+          </div>
+          <button
+            id="tabs-scroll-right"
+            aria-label="Scroll tabs right"
+            className="p-2 text-zinc-600 hover:bg-zinc-100 rounded-r-md"
+            onClick={() => {
+              const el = tabsContainerRef.current;
+              if (!el) return;
+              el.scrollBy({ left: 320, behavior: 'smooth' });
+            }}
+          >
+            ›
+          </button>
+        </div>
       </div>
 
       {/* Tab Form Areas */}
@@ -903,6 +999,93 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'hours' && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex justify-between items-center border-b border-zinc-100 pb-2">
+              <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Weekly Operating Hours</h3>
+              <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold border border-indigo-100">Structured Schedule</span>
+            </div>
+
+            <p className="text-[11px] text-zinc-500">Configure your weekly operating schedule. Closed days are kept separate from open hours and will be reflected across the website, JSON-LD, entity.json, llms.txt and graph.jsonld exports.</p>
+
+            <div className="space-y-3">
+              {info.openingHours.map((oh, idx) => (
+                <div key={oh.day} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 rounded-xl border border-zinc-200 bg-zinc-50">
+                  <div className="flex items-center justify-between gap-3 md:col-span-2">
+                    <div>
+                      <div className="text-sm font-semibold text-zinc-900">{oh.day}</div>
+                      <div className="text-[10px] text-zinc-500">Toggle open/closed, optional 24-hour service, and edit the hourly window.</div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-700">
+                        <input
+                          type="checkbox"
+                          checked={!oh.closed}
+                          onChange={e => updateHourFields(idx, { closed: !e.target.checked, open24: false })}
+                          className="h-4 w-4 text-indigo-600 border-zinc-300 rounded"
+                        />
+                        Open
+                      </label>
+                      <label className={`inline-flex items-center gap-2 text-xs font-semibold ${oh.closed ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                        <input
+                          type="checkbox"
+                          checked={!!oh.open24}
+                          disabled={oh.closed}
+                          onChange={e => {
+                            const open24 = e.target.checked;
+                            updateHourFields(idx, {
+                              closed: false,
+                              open24,
+                              open: open24 ? '00:00' : oh.open || '09:00',
+                              close: open24 ? '23:59' : oh.close || '17:00'
+                            });
+                          }}
+                          className="h-4 w-4 text-indigo-600 border-zinc-300 rounded"
+                        />
+                        24 hours
+                      </label>
+                    </div>
+                  </div>
+
+                  {!oh.closed && !oh.open24 && (
+                    <>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-zinc-700 mb-1">Open</label>
+                        <input
+                          type="time"
+                          value={oh.open}
+                          onChange={e => updateHour(idx, 'open', e.target.value)}
+                          className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-semibold text-zinc-700 mb-1">Close</label>
+                        <input
+                          type="time"
+                          value={oh.close}
+                          onChange={e => updateHour(idx, 'close', e.target.value)}
+                          className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex items-end md:col-span-2">
+                    <p className={`text-xs font-medium ${oh.closed ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {oh.closed
+                        ? 'Closed on this day'
+                        : oh.open24
+                          ? 'Open 24 hours'
+                          : `Open ${oh.open}–${oh.close}`}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -1567,8 +1750,8 @@ export default function FormCollector({ info, onChange }: FormCollectorProps) {
                 {[
                   { path: 'index.html', label: 'Semantic Home', icon: FileCode, size: '22 KB' },
                   { path: '404.html', label: 'Redirect fallback', icon: FileCode, size: '2 KB' },
-                  { path: 'css/style.css', label: 'Vanilla Styles', icon: Code2, size: '8 KB' },
-                  { path: 'js/main.js', label: 'Interactive Handles', icon: Code2, size: '2 KB' },
+                  { path: 'style.css', label: 'Vanilla Styles', icon: Code2, size: '8 KB' },
+                  { path: 'main.js', label: 'Interactive Handles', icon: Code2, size: '2 KB' },
                   { path: 'schema/graph.jsonld', label: 'Linked JSON-LD', icon: Globe, size: '12 KB' },
                   { path: 'entity.json', label: 'Pure Entity Schema', icon: FileText, size: '5 KB' },
                   { path: 'llms.txt', label: 'AI LLM Spider', icon: FileText, size: '3 KB' },

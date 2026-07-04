@@ -8,9 +8,10 @@ import { BusinessInfo, ThemeConfig, ProductItem, ServiceItem, FAQItem } from '..
 /**
  * Format hours for display
  */
-function formatHours(open: string, close: string, closed: boolean): string {
+function formatHours(open: string, close: string, closed: boolean, open24?: boolean): string {
   if (closed) return 'Closed';
-  return `${open} - ${close}`;
+  if (open24) return 'Open 24 hours';
+  return `${open}–${close}`;
 }
 
 /**
@@ -81,13 +82,19 @@ export function generateGraphJsonLd(info: BusinessInfo): string {
     'longitude': info.coordinates.longitude
   } : undefined;
 
-  const openingHoursSpecification = info.openingHours.map(oh => ({
-    '@type': 'OpeningHoursSpecification',
-    'dayOfWeek': oh.day,
-    'opens': oh.closed ? '00:00' : oh.open,
-    'closes': oh.closed ? '00:00' : oh.close,
-    'closed': oh.closed ? true : undefined
-  }));
+  const openingHoursSpecification = info.openingHours.map(oh => {
+    const spec: any = {
+      '@type': 'OpeningHoursSpecification',
+      'dayOfWeek': oh.day
+    };
+    if (!oh.closed) {
+      spec.opens = oh.open24 ? '00:00' : oh.open;
+      spec.closes = oh.open24 ? '23:59' : oh.close;
+    } else {
+      spec.closed = true;
+    }
+    return spec;
+  });
 
   const contactPoint: any[] = [
     {
@@ -1565,8 +1572,8 @@ ${info.description}
 - **Google Business Profile:** ${info.googleBusinessProfileUrl || 'None specified'}
 - **Google Maps Navigation:** ${info.googleMapsUrl || 'None specified'}
 
-## Weekly Opening Hours
-${info.openingHours.map(oh => `- **${oh.day}:** ${formatHours(oh.open, oh.close, oh.closed)}`).join('\n')}
+## Operating Hours
+${info.openingHours.map(oh => `- **${oh.day}:** ${formatHours(oh.open, oh.close, oh.closed, oh.open24)}`).join('\n')}
 
 `;
 
@@ -1630,9 +1637,9 @@ This directory contains a complete, production-ready, search-optimized, and AI-r
 - \`manifest.webmanifest\` — Web app structure.
 - \`entity.json\` — Pure machine-readable JSON structure detailing all business entities, links, coordinates, and catalogs.
 - \`favicon.svg\` — Scalable vector mascot logo.
-- \`/css/style.css\` — Bespoke theme CSS (Vanilla CSS, extremely fast).
-- \`/js/main.js\` — Interaction handles, accordions, gallery lightbox, and accessibility parameters (Vanilla JS).
-- \`/schema/graph.jsonld\` — Fully validated semantic database linking LocalBusiness, Organization, WebSite, and catalogs.
+- \`style.css\` — Bespoke theme CSS (Vanilla CSS, extremely fast).
+- \`main.js\` — Interaction handles, accordions, gallery lightbox, and accessibility parameters (Vanilla JS).
+- \`schema/graph.jsonld\` — Fully validated semantic database linking LocalBusiness, Organization, WebSite, and catalogs.
 
 ## 🚀 How to Host it for Free!
 
@@ -1880,8 +1887,7 @@ export function generateIndexHtml(info: BusinessInfo): string {
           <div class="fact-content">
             <h4>Hours of Operation</h4>
             <p style="margin-bottom: 0.5rem; font-size: 0.95rem;">
-              Monday - Friday: ${escapeHtml(formatHours(info.openingHours[0]?.open || '09:00', info.openingHours[0]?.close || '17:00', info.openingHours[0]?.closed || false))}<br>
-              Saturday - Sunday: ${escapeHtml(formatHours(info.openingHours[5]?.open || '00:00', info.openingHours[5]?.close || '00:00', info.openingHours[5]?.closed || true))}
+              Weekly operating hours are defined in the verified schedule below.
             </p>
             <a href="#opening-time" class="btn btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.75rem; text-decoration: none;">Opening Time</a>
           </div>
@@ -2149,7 +2155,7 @@ export function generateIndexHtml(info: BusinessInfo): string {
               <tr>
                 <td class="hours-day">${escapeHtml(oh.day)}</td>
                 <td class="hours-time ${oh.closed ? 'closed' : ''}">
-                  ${escapeHtml(formatHours(oh.open, oh.close, oh.closed))}
+                  ${escapeHtml(formatHours(oh.open, oh.close, oh.closed, oh.open24))}
                 </td>
               </tr>`).join('')}
             </tbody>
@@ -2216,11 +2222,12 @@ export function generateIndexHtml(info: BusinessInfo): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="./">
   
 ${metaBlock}
 
   <!-- External Styles -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="style.css">
 
   <!-- Embedded Linked JSON-LD Graph -->
   <script type="application/ld+json">
@@ -2334,7 +2341,7 @@ ${sectionsContent}
   </div>
 
   <!-- Vanilla Interaction Logic -->
-  <script src="js/main.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>`;
 }

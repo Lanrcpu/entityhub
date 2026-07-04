@@ -26,13 +26,13 @@ export default function LivePreview({ info }: LivePreviewProps) {
 
     // Replace stylesheet link with inline styles for iframe compatibility
     html = html.replace(
-      '<link rel="stylesheet" href="css/style.css">',
+      '<link rel="stylesheet" href="style.css">',
       `<style>${css}</style>`
     );
 
     // Replace javascript link with inline script for iframe compatibility
     html = html.replace(
-      '<script src="js/main.js"></script>',
+      '<script src="main.js"></script>',
       `<script>${js}</script>`
     );
 

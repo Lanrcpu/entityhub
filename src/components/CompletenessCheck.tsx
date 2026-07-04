@@ -138,6 +138,14 @@ export default function CompletenessCheck({ info }: CompletenessCheckProps) {
   const criticalMissingCount = items.filter(i => i.status === 'critical').length;
   const completenessPercent = Math.round((completedCount / items.length) * 100);
 
+  // Sort items so critical ones appear first, preserving original order within same status
+  const itemsWithIndex = items.map((it, idx) => ({ ...it, idx }));
+  const statusWeight = (s: ValidationItem['status']) => (s === 'critical' ? 0 : s === 'warning' ? 1 : 2);
+  const sortedItems = itemsWithIndex
+    .slice()
+    .sort((a, b) => statusWeight(a.status) - statusWeight(b.status) || a.idx - b.idx)
+    .map(({ idx, ...rest }) => (rest as ValidationItem));
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-zinc-200/80 p-5 space-y-4" id="publication-readiness-card">
       <div className="flex justify-between items-center gap-4">
@@ -160,6 +168,16 @@ export default function CompletenessCheck({ info }: CompletenessCheckProps) {
         </div>
       </div>
 
+      {/* Warning Alert if critical parameters missing (placed at top) */}
+      {criticalMissingCount > 0 && (
+        <div className="p-3 bg-red-50 border border-red-200/60 rounded-lg flex gap-2 text-red-800 text-xs animate-pulse">
+          <XCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <strong className="font-bold">Critical Information Missing:</strong> There are {criticalMissingCount} missing fields required to produce a valid Entity Hub sitemap or structured schema graph. Please provide them in the form.
+          </div>
+        </div>
+      )}
+
       {/* Progress Bar */}
       <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden border border-zinc-200/30">
         <div
@@ -172,19 +190,9 @@ export default function CompletenessCheck({ info }: CompletenessCheckProps) {
         />
       </div>
 
-      {/* Warning Alert if critical parameters missing */}
-      {criticalMissingCount > 0 && (
-        <div className="p-3 bg-red-50 border border-red-200/60 rounded-lg flex gap-2 text-red-800 text-xs animate-pulse">
-          <XCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <strong className="font-bold">Critical Information Missing:</strong> There are {criticalMissingCount} missing fields required to produce a valid Entity Hub sitemap or structured schema graph. Please provide them in the form.
-          </div>
-        </div>
-      )}
-
       {/* Validation Checklist Items */}
       <div className="space-y-2.5 max-h-[220px] overflow-y-auto divide-y divide-zinc-100 pr-1 text-xs">
-        {items.map(item => (
+        {sortedItems.map(item => (
           <div key={item.id} className="flex justify-between items-start pt-2.5 first:pt-0 gap-3">
             <div className="flex gap-2.5">
               <div className="flex-shrink-0 mt-0.5">

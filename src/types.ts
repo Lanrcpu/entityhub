@@ -34,6 +34,7 @@ export interface OpeningHour {
   open: string;
   close: string;
   closed: boolean;
+  open24?: boolean;
 }
 
 export interface ProductItem {

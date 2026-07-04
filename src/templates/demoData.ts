@@ -418,6 +418,8 @@ export const demoTemplates: { [key: string]: { label: string; data: BusinessInfo
       },
       canonicalUrl: 'https://vanguardadvisory.com',
       serviceArea: ['San Francisco Bay Area', 'Bay Area', 'Northern California'],
+      reviews: [],
+      trustBadges: [],
       theme: {
         style: 'mono',
         primaryColor: '#000000', // high-contrast black
@@ -468,6 +470,8 @@ export const demoTemplates: { [key: string]: { label: string; data: BusinessInfo
       products: [],
       services: [],
       faqs: [],
+      reviews: [],
+      trustBadges: [],
       images: [],
       logo: '🏢',
       coordinates: {
